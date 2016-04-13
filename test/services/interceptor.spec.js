@@ -22,11 +22,11 @@ describe('Interceptor', () => {
   };
 
   window.AWS = {
-    config:{credentials}
+    config: {credentials}
   };
 
   beforeEach(() => {
-    module('angular-aws-apig', (_$httpProvider_, _APIGInterceptorProvider_) =>{
+    module('angular-aws-apig', (_$httpProvider_, _APIGInterceptorProvider_) => {
       APIGInterceptorProvider = _APIGInterceptorProvider_;
       $httpProvider = _$httpProvider_;
       $httpProvider.interceptors.push('APIGInterceptor');
@@ -61,7 +61,7 @@ describe('Interceptor', () => {
     beforeEach(() => {
       $rootScope.bar = '54321';
       APIGInterceptorProvider.config({
-        headers: {foo: '12345'}
+        headers: {foo: '12345'},
       });
 
       APIGInterceptorProvider.headerGetter = ($rootScope, request) => {
@@ -103,6 +103,27 @@ describe('Interceptor', () => {
     });
   });
 
+  describe('http POST request', () => {
+    let headers;
+    beforeEach(() => {
+      $httpBackend.expect('POST', 'fake/url', {}, (h) => {
+        headers = h;
+        return true;
+      }).respond(200, {});
+
+      $http.post('fake/url', {});
+      $httpBackend.flush();
+    });
+
+    it('should have Content-Type header', () => {
+      expect(headers['Content-Type']).to.equal('application/json;charset=UTF-8');
+    });
+
+    it('should have correct SignedHeaders', () => {
+      expect(headers.Authorization).to.contain('SignedHeaders=accept;content-length;content-type;host;x-amz-date;x-amz-security-token');
+    });
+  });
+
   it('credentialsGetter should work with promise', () => {
     let headers;
     APIGInterceptorProvider.credentialsGetter = ($q) => {
@@ -118,4 +139,36 @@ describe('Interceptor', () => {
     $httpBackend.flush();
     expect(headers['X-Amz-Security-Token']).to.equal(asyncCredentials.sessionToken);
   });
+
+  describe('should work with regex specified', () => {
+    beforeEach(() => {
+      APIGInterceptorProvider.config({
+        urlRegex: 'base_url'
+      });
+    });
+
+    it('and return correct headers when url matched', () => {
+      let headers;
+      $httpBackend.expect('GET', 'base_url/foo', null, (h) => {
+        headers = h;
+        return true;
+      }).respond(200, {});
+
+      $http.get('base_url/foo');
+      $httpBackend.flush();
+      expect(headers['X-Amz-Security-Token']).to.equal(credentials.sessionToken);
+    });
+
+    it('and skip headers when url is not mathced', () => {
+      let headers;
+      $httpBackend.expect('GET', 'fake/url', null, (h) => {
+        headers = h;
+        return true;
+      }).respond(200, {});
+
+      $http.get('fake/url');
+      $httpBackend.flush();
+      expect(headers['X-Amz-Security-Token']).to.be.an('undefined');
+    });
+  })
 });

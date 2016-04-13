@@ -3,6 +3,7 @@ import aws4 from 'aws4';
 function APIGInterceptorProvider() {
   this.headers = {};
   this.region = 'us-east-1';
+  this.urlRegex = '';
 
   this.headerGetter = (request) => {
     return request.headers
@@ -46,32 +47,37 @@ function APIGInterceptorProvider() {
     let config = this;
     return {
       request(request) {
-        Object.assign(request.headers, config.headers);
-        const parser = config.parseUrl(request.url);
-        const headers = $injector.invoke(config.headerGetter, this, {request});
-        const params = config.params ? '?' + request.paramSerializer(config.params) : '';
-        const data = config.transformData(request);
-        const credsPromise = $q.when($injector.invoke(config.credentialsGetter, this, {request}));
-        if (data) headers['Content-Type'] = 'application/json;charset=UTF-8';
-        return credsPromise.then((creds) => {
-          const options = aws4.sign({
-            service: 'execute-api',
-            region: config.region,
-            host: parser.host,
-            path: parser.path + params,
-            method: request.method,
-            body: data,
-            headers
-          }, creds);
+        let urlRegex = new RegExp(config.urlRegex);
+        if (urlRegex.test(request.url)) {
+          Object.assign(request.headers, config.headers);
+          const parser = config.parseUrl(request.url);
+          const headers = $injector.invoke(config.headerGetter, this, {request});
+          const params = config.params ? '?' + request.paramSerializer(config.params) : '';
+          const data = config.transformData(request);
+          const credsPromise = $q.when($injector.invoke(config.credentialsGetter, this, {request}));
+          if (data) headers['Content-Type'] = 'application/json;charset=UTF-8';
+          return credsPromise.then((creds) => {
+            const options = aws4.sign({
+              service: 'execute-api',
+              region: config.region,
+              host: parser.host,
+              path: parser.path + params,
+              method: request.method,
+              body: data,
+              headers
+            }, creds);
 
-          delete options.headers['Host'];
-          delete options.headers['Content-Length'];
+            delete options.headers['Host'];
+            delete options.headers['Content-Length'];
 
-          request.headers = options.headers;
-          request.data = options.body;
-          request.transformRequest = [];
+            request.headers = options.headers;
+            request.data = options.body;
+            request.transformRequest = [];
+            return request;
+          });
+        } else {
           return request;
-        });
+        }
       },
       responseError(rejection) {
         $rootScope.$broadcast('$APIGError', rejection.data);
