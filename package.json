@@ -1,7 +1,7 @@
 {
   "name": "angular-aws-apig",
-  "version": "1.0.1",
-  "description": "Angular interceptor for $http service that signs all request to AWS APIGateway with IAM credentials.",
+  "version": "1.0.2",
+  "description": "Angular interceptor for $http service that signs all requests to AWS APIGateway with IAM credentials.",
   "main": "index.js",
   "scripts": {
     "test": "karma start"

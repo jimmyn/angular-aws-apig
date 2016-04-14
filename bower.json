@@ -1,6 +1,6 @@
 {
   "name": "angular-aws-apig",
-  "description": "Angular interceptor for $http service that signs all request to AWS APIGateway with IAM credentials.",
+  "description": "Angular interceptor for $http service that signs all requests to AWS APIGateway with IAM credentials.",
   "main": "dist/angular-aws-apig.js",
   "authors": [
     "Dmitriy Nevzorov"
