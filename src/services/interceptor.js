@@ -3,9 +3,10 @@ import aws4 from 'aws4';
 function APIGInterceptorProvider() {
   this.headers = {};
   this.region = 'us-east-1';
+  this.service = 'execute-api';
   this.urlRegex = '';
 
-  this.headerGetter = (request) => {
+  this.headersGetter = /*@ngInject*/(request) => {
     return request.headers
   };
 
@@ -42,8 +43,7 @@ function APIGInterceptorProvider() {
     return data;
   };
 
-  /* @ngInject */
-  this.$get = ($q, $injector) => {
+  this.$get = /*@ngInject*/($q, $injector, $rootScope) => {
     let config = this;
     return {
       request(request) {
@@ -51,14 +51,14 @@ function APIGInterceptorProvider() {
         if (urlRegex.test(request.url)) {
           Object.assign(request.headers, config.headers);
           const parser = config.parseUrl(request.url);
-          const headers = $injector.invoke(config.headerGetter, this, {request});
+          const headers = $injector.invoke(config.headersGetter, this, {request});
           const params = config.params ? '?' + request.paramSerializer(config.params) : '';
           const data = config.transformData(request);
           const credsPromise = $q.when($injector.invoke(config.credentialsGetter, this, {request}));
           if (data) headers['Content-Type'] = 'application/json;charset=UTF-8';
           return credsPromise.then((creds) => {
             const options = aws4.sign({
-              service: 'execute-api',
+              service: config.service,
               region: config.region,
               host: parser.host,
               path: parser.path + params,

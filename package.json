@@ -4,14 +4,16 @@
   "description": "AWS APIGateway client for AngularJS",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "karma start"
   },
   "keywords": [
     "aws",
     "angular",
     "apig",
-    "apidateway",
-    "interceptor"
+    "apigateway",
+    "interceptor",
+    "aws4",
+    "iam"
   ],
   "author": "Dmitriy Nevzorov",
   "license": "MIT",
@@ -23,6 +25,8 @@
     "browserify": "^13.0.0",
     "chai": "^3.5.0",
     "gulp": "^3.9.1",
+    "gulp-ng-annotate": "^2.0.0",
+    "gulp-rename": "^1.2.2",
     "gulp-uglify": "^1.5.3",
     "gulp-util": "^3.0.7",
     "karma": "^0.13.22",
@@ -34,6 +38,7 @@
     "mocha": "^2.4.5",
     "sinon": "^1.17.3",
     "sinon-chai": "^2.8.0",
+    "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0"
   },
   "dependencies": {

@@ -61,10 +61,10 @@ describe('Interceptor', () => {
     beforeEach(() => {
       $rootScope.bar = '54321';
       APIGInterceptorProvider.config({
-        headers: {foo: '12345'},
+        headers: {foo: '12345'}
       });
 
-      APIGInterceptorProvider.headerGetter = ($rootScope, request) => {
+      APIGInterceptorProvider.headersGetter = ($rootScope, request) => {
         request.headers.bar = $rootScope.bar;
         return request.headers;
       };

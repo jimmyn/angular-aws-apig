@@ -10,8 +10,10 @@
     "aws",
     "angular",
     "apig",
-    "apidateway",
-    "interceptor"
+    "apigateway",
+    "interceptor",
+    "aws4",
+    "iam"
   ],
   "moduleType": [],
   "homepage": "",
@@ -23,7 +25,7 @@
     "tests"
   ],
   "dependencies": {
-    "angular": "^1.5.3"
+    "angular": "*"
   },
   "devDependencies": {
     "angular-mocks": "^1.5.3"
