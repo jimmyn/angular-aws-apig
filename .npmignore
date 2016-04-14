@@ -51,4 +51,5 @@ Thumbs.db
 # added by KAS
 test/
 src/
+bower_components/
 babelhook.js
