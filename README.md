@@ -7,11 +7,11 @@ This library provides an **Interceptor** for angular `$http` service that signs 
 You have several options:
 
 ````bash
-bower install angular-aws-apig
+bower install angular-aws-apig --save
 ````
 
 ````bash
-npm install angular-aws-apig
+npm install angular-aws-apig --save
 ````
 
 Or just include `dist/angular-aws-apig.js` or `dist/angular-aws-apig.min.js` in to your index.html
