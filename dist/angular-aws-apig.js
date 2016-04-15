@@ -1684,7 +1684,7 @@ function buildCredentialScope(datetime, region, service) {
 }
 
 function calculateSigningKey(secretKey, datetime, region, service) {
-  return hmac(hmac(hmac(hmac(AWS4 + secretKey, datetime.substr(0, 8)), region), service), AWS4_REQUEST);
+  return hmac(hmac(hmac(hmac('AWS4' + secretKey, datetime.substr(0, 8)), region), service), AWS4_REQUEST);
 }
 
 function calculateSignature(key, stringToSign) {
