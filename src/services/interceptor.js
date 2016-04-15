@@ -1,4 +1,4 @@
-import aws4 from 'aws4';
+import AWS4 from './../aws-signature-v4';
 
 function APIGInterceptorProvider() {
   this.headers = {};
@@ -45,35 +45,19 @@ function APIGInterceptorProvider() {
 
   this.$get = /*@ngInject*/($q, $injector, $rootScope) => {
     let config = this;
+    let aws4 = new AWS4({
+      service: config.service,
+      region: config.region
+    });
     return {
       request(request) {
         let urlRegex = new RegExp(config.urlRegex);
         if (urlRegex.test(request.url)) {
           Object.assign(request.headers, config.headers);
-          const parser = config.parseUrl(request.url);
-          const headers = $injector.invoke(config.headersGetter, this, {request});
-          const params = config.params ? '?' + request.paramSerializer(config.params) : '';
-          const data = config.transformData(request);
+          request.headers = $injector.invoke(config.headersGetter, this, {request});
           const credsPromise = $q.when($injector.invoke(config.credentialsGetter, this, {request}));
-          if (data) headers['Content-Type'] = 'application/json;charset=UTF-8';
           return credsPromise.then((creds) => {
-            const options = aws4.sign({
-              service: config.service,
-              region: config.region,
-              host: parser.host,
-              path: parser.path + params,
-              method: request.method,
-              body: data,
-              headers
-            }, creds);
-
-            delete options.headers['Host'];
-            delete options.headers['Content-Length'];
-
-            request.headers = options.headers;
-            request.data = options.body;
-            request.transformRequest = [];
-            return request;
+            return aws4.sign(request, creds);
           });
         } else {
           return request;

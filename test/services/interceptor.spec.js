@@ -69,12 +69,12 @@ describe('Interceptor', () => {
         return request.headers;
       };
 
-      $httpBackend.expect('GET', 'fake/url', null, (h) => {
+      $httpBackend.expect('GET', 'https://api.fakeurl.com/some/path', null, (h) => {
         headers = h;
         return true;
       }).respond(200, {});
 
-      $http.get('fake/url');
+      $http.get('https://api.fakeurl.com/some/path');
       $httpBackend.flush();
     });
 
@@ -87,15 +87,15 @@ describe('Interceptor', () => {
     });
 
     it('should have correct SignedHeaders', () => {
-      expect(headers.Authorization).to.contain('SignedHeaders=accept;bar;foo;host;x-amz-date;x-amz-security-token');
+      expect(headers.Authorization).to.contain('SignedHeaders=accept;bar;foo;host;x-amz-date');
     });
 
     it('should have correct accessKeyId', () => {
       expect(headers.Authorization).to.contain(credentials.accessKeyId);
     });
 
-    it('should have correct X-Amz-Security-Token', () => {
-      expect(headers['X-Amz-Security-Token']).to.equal(credentials.sessionToken);
+    it('should have correct x-amz-security-token', () => {
+      expect(headers['x-amz-security-token']).to.equal(credentials.sessionToken);
     });
 
     it('should not have Content-Type header', () => {
@@ -106,21 +106,21 @@ describe('Interceptor', () => {
   describe('http POST request', () => {
     let headers;
     beforeEach(() => {
-      $httpBackend.expect('POST', 'fake/url', {}, (h) => {
+      $httpBackend.expect('POST', 'https://api.fakeurl.com/some/path', {foo: 'bar'}, (h) => {
         headers = h;
         return true;
       }).respond(200, {});
 
-      $http.post('fake/url', {});
+      $http.post('https://api.fakeurl.com/some/path', {foo: 'bar'});
       $httpBackend.flush();
     });
 
     it('should have Content-Type header', () => {
-      expect(headers['Content-Type']).to.equal('application/json;charset=UTF-8');
+      expect(headers['Content-Type']).to.equal('application/json;charset=utf-8');
     });
 
     it('should have correct SignedHeaders', () => {
-      expect(headers.Authorization).to.contain('SignedHeaders=accept;content-length;content-type;host;x-amz-date;x-amz-security-token');
+      expect(headers.Authorization).to.contain('SignedHeaders=accept;content-type;host;x-amz-date');
     });
   });
 
@@ -130,14 +130,14 @@ describe('Interceptor', () => {
       return $q.when(asyncCredentials);
     };
 
-    $httpBackend.expect('GET', 'fake/url', null, (h) => {
+    $httpBackend.expect('GET', 'https://api.fakeurl.com/some/path?foo=bar', null, (h) => {
       headers = h;
       return true;
     }).respond(200, {});
 
-    $http.get('fake/url');
+    $http.get('https://api.fakeurl.com/some/path', {params: {foo: 'bar'}});
     $httpBackend.flush();
-    expect(headers['X-Amz-Security-Token']).to.equal(asyncCredentials.sessionToken);
+    expect(headers['x-amz-security-token']).to.equal(asyncCredentials.sessionToken);
   });
 
   describe('should work with regex specified', () => {
@@ -149,26 +149,26 @@ describe('Interceptor', () => {
 
     it('and return correct headers when url matched', () => {
       let headers;
-      $httpBackend.expect('GET', 'base_url/foo', null, (h) => {
+      $httpBackend.expect('GET', 'https://api.base_url.com/some/path', null, (h) => {
         headers = h;
         return true;
       }).respond(200, {});
 
-      $http.get('base_url/foo');
+      $http.get('https://api.base_url.com/some/path');
       $httpBackend.flush();
-      expect(headers['X-Amz-Security-Token']).to.equal(credentials.sessionToken);
+      expect(headers['x-amz-security-token']).to.equal(credentials.sessionToken);
     });
 
     it('and skip headers when url is not mathced', () => {
       let headers;
-      $httpBackend.expect('GET', 'fake/url', null, (h) => {
+      $httpBackend.expect('GET', 'https://api.fakeurl.com/some/path', null, (h) => {
         headers = h;
         return true;
       }).respond(200, {});
 
-      $http.get('fake/url');
+      $http.get('https://api.fakeurl.com/some/path');
       $httpBackend.flush();
-      expect(headers['X-Amz-Security-Token']).to.be.an('undefined');
+      expect(headers['x-amz-security-token']).to.be.an('undefined');
     });
   })
 });
