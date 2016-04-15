@@ -1789,27 +1789,6 @@ function APIGInterceptorProvider() {
     _extends(_this, options);
   };
 
-  this.parseUrl = function (url) {
-    var parser = document.createElement('a');
-    parser.href = url;
-    return {
-      host: parser.host,
-      path: parser.pathname
-    };
-  };
-
-  this.transformData = function (config) {
-    var data = config.data;
-    if (Array.isArray(config.transformRequest)) {
-      config.transformRequest.forEach(function (transformer) {
-        data = transformer(data);
-      });
-    } else {
-      data = config.transformRequest(data);
-    }
-    return data;
-  };
-
   this.$get = /*@ngInject*/["$q", "$injector", "$rootScope", function ($q, $injector, $rootScope) {
     var config = _this;
     var aws4 = new _awsSignatureV2.default({

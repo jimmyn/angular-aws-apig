@@ -22,27 +22,6 @@ function APIGInterceptorProvider() {
     Object.assign(this, options);
   };
 
-  this.parseUrl = (url) => {
-    const parser = document.createElement('a');
-    parser.href = url;
-    return {
-      host: parser.host,
-      path: parser.pathname
-    };
-  };
-
-  this.transformData = (config) => {
-    let data = config.data;
-    if (Array.isArray(config.transformRequest)) {
-      config.transformRequest.forEach((transformer) => {
-        data = transformer(data);
-      });
-    } else {
-      data = config.transformRequest(data);
-    }
-    return data;
-  };
-
   this.$get = /*@ngInject*/($q, $injector, $rootScope) => {
     let config = this;
     let aws4 = new AWS4({
