@@ -84,6 +84,3 @@ In this example `awsCredentials.get` returns a promise that resolves with `crede
     sessionToken: 'sessionToken'
   }
 ````
-
-## Credits
-This library is a wrapper around [aws4](https://github.com/mhart/aws4) npm package.
