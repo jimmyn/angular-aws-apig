@@ -1634,7 +1634,7 @@ function buildCanonicalQueryString(queryParams) {
 
   var sortedQueryParams = [];
   for (var property in queryParams) {
-    if (queryParams.hasOwnProperty(property)) {
+    if (queryParams.hasOwnProperty(property) && queryParams[property] !== undefined) {
       sortedQueryParams.push(property);
     }
   }

@@ -44,40 +44,40 @@ function buildCanonicalQueryString(queryParams) {
     return '';
   }
 
-  var sortedQueryParams = [];
-  for (var property in queryParams) {
-    if (queryParams.hasOwnProperty(property)) {
+  let sortedQueryParams = [];
+  for (let property in queryParams) {
+    if (queryParams.hasOwnProperty(property) && queryParams[property] !== undefined) {
       sortedQueryParams.push(property);
     }
   }
   sortedQueryParams.sort();
 
-  var canonicalQueryString = '';
-  for (var i = 0; i < sortedQueryParams.length; i++) {
+  let canonicalQueryString = '';
+  for (let i = 0; i < sortedQueryParams.length; i++) {
     canonicalQueryString += sortedQueryParams[i] + '=' + encodeURIComponent(queryParams[sortedQueryParams[i]]) + '&';
   }
   return canonicalQueryString.substr(0, canonicalQueryString.length - 1);
 }
 
 function buildCanonicalHeaders(headers) {
-  var canonicalHeaders = '';
-  var sortedKeys = [];
-  for (var property in headers) {
+  let canonicalHeaders = '';
+  let sortedKeys = [];
+  for (let property in headers) {
     if (headers.hasOwnProperty(property)) {
       sortedKeys.push(property);
     }
   }
   sortedKeys.sort();
 
-  for (var i = 0; i < sortedKeys.length; i++) {
+  for (let i = 0; i < sortedKeys.length; i++) {
     canonicalHeaders += sortedKeys[i].toLowerCase() + ':' + headers[sortedKeys[i]] + '\n';
   }
   return canonicalHeaders;
 }
 
 function buildCanonicalSignedHeaders(headers) {
-  var sortedKeys = [];
-  for (var property in headers) {
+  let sortedKeys = [];
+  for (let property in headers) {
     if (headers.hasOwnProperty(property)) {
       sortedKeys.push(property.toLowerCase());
     }
