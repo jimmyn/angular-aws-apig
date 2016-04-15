@@ -52,7 +52,7 @@ function APIGInterceptorProvider() {
           Object.assign(request.headers, config.headers);
           const parser = config.parseUrl(request.url);
           const headers = $injector.invoke(config.headersGetter, this, {request});
-          const params = config.params ? '?' + request.paramSerializer(config.params) : '';
+          const params = request.params ? '?' + request.paramSerializer(request.params) : '';
           const data = config.transformData(request);
           const credsPromise = $q.when($injector.invoke(config.credentialsGetter, this, {request}));
           if (data) headers['Content-Type'] = 'application/json;charset=UTF-8';
