@@ -84,3 +84,11 @@ In this example `awsCredentials.get` returns a promise that resolves with `crede
     sessionToken: 'sessionToken'
   }
 ````
+
+## $APIGError event
+This event would be triggered on request error.
+````js
+$rootScope.$on('$APIGError', (event, error) => {
+  $log.debug(event, error);
+});
+````
