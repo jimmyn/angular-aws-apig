@@ -14,6 +14,10 @@ const buffer = require('vinyl-buffer');
 gulp.task('build', function () {
   return browserify('./src/angular-aws-apig.js', { entry: true })
     .transform(babelify)
+    .transform(aliasify, {
+      aliases: {querystring: 'querystring-browser'},
+      global: true
+    })
     .bundle()
     .on('error', function(err){
       gutil.log(err.message);

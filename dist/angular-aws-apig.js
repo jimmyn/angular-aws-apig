@@ -742,25 +742,6 @@
 
 }));
 },{}],2:[function(require,module,exports){
-;(function (root, factory) {
-	if (typeof exports === "object") {
-		// CommonJS
-		module.exports = exports = factory(require("./core"));
-	}
-	else if (typeof define === "function" && define.amd) {
-		// AMD
-		define(["./core"], factory);
-	}
-	else {
-		// Global (browser)
-		factory(root.CryptoJS);
-	}
-}(this, function (CryptoJS) {
-
-	return CryptoJS.enc.Hex;
-
-}));
-},{"./core":1}],3:[function(require,module,exports){
 ;(function (root, factory, undef) {
 	if (typeof exports === "object") {
 		// CommonJS
@@ -779,7 +760,7 @@
 	return CryptoJS.HmacSHA256;
 
 }));
-},{"./core":1,"./hmac":4,"./sha256":5}],4:[function(require,module,exports){
+},{"./core":1,"./hmac":3,"./sha256":4}],3:[function(require,module,exports){
 ;(function (root, factory) {
 	if (typeof exports === "object") {
 		// CommonJS
@@ -923,7 +904,7 @@
 
 
 }));
-},{"./core":1}],5:[function(require,module,exports){
+},{"./core":1}],4:[function(require,module,exports){
 ;(function (root, factory) {
 	if (typeof exports === "object") {
 		// CommonJS
@@ -1123,438 +1104,200 @@
 	return CryptoJS.SHA256;
 
 }));
-},{"./core":1}],6:[function(require,module,exports){
-'use strict';
+},{"./core":1}],5:[function(require,module,exports){
+// shim for using process in browser
 
-var has = Object.prototype.hasOwnProperty;
+var process = module.exports = {};
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
 
-/**
- * Simple query string parser.
- *
- * @param {String} query The query string that needs to be parsed.
- * @returns {Object}
- * @api public
- */
-function querystring(query) {
-  var parser = /([^=?&]+)=([^&]*)/g
-    , result = {}
-    , part;
-
-  //
-  // Little nifty parsing hack, leverage the fact that RegExp.exec increments
-  // the lastIndex property so we can continue executing this loop until we've
-  // parsed all results.
-  //
-  for (;
-    part = parser.exec(query);
-    result[decodeURIComponent(part[1])] = decodeURIComponent(part[2])
-  );
-
-  return result;
-}
-
-/**
- * Transform a query string to an object.
- *
- * @param {Object} obj Object that should be transformed.
- * @param {String} prefix Optional prefix.
- * @returns {String}
- * @api public
- */
-function querystringify(obj, prefix) {
-  prefix = prefix || '';
-
-  var pairs = [];
-
-  //
-  // Optionally prefix with a '?' if needed
-  //
-  if ('string' !== typeof prefix) prefix = '?';
-
-  for (var key in obj) {
-    if (has.call(obj, key)) {
-      pairs.push(encodeURIComponent(key) +'='+ encodeURIComponent(obj[key]));
+function cleanUpNextTick() {
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
     }
-  }
-
-  return pairs.length ? prefix + pairs.join('&') : '';
+    if (queue.length) {
+        drainQueue();
+    }
 }
 
-//
-// Expose the module.
-//
-exports.stringify = querystringify;
-exports.parse = querystring;
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = setTimeout(cleanUpNextTick);
+    draining = true;
 
-},{}],7:[function(require,module,exports){
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    clearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        setTimeout(drainQueue, 0);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],6:[function(require,module,exports){
 'use strict';
+var strictUriEncode = require('strict-uri-encode');
 
-/**
- * Check if we're required to add a port number.
- *
- * @see https://url.spec.whatwg.org/#default-port
- * @param {Number|String} port Port number we need to check
- * @param {String} protocol Protocol we need to check against.
- * @returns {Boolean} Is it a default port for the given protocol
- * @api private
- */
-module.exports = function required(port, protocol) {
-  protocol = protocol.split(':')[0];
-  port = +port;
+function encode(value, strict) {
+	return strict ? strictUriEncode(value) : encodeURIComponent(value);
+}
 
-  if (!port) return false;
+exports.extract = function (str) {
+	return str.split('?')[1] || '';
+};
 
-  switch (protocol) {
-    case 'http':
-    case 'ws':
-    return port !== 80;
+exports.parse = function (str) {
+	// Create an object with no prototype
+	// https://github.com/sindresorhus/query-string/issues/47
+	var ret = Object.create(null);
 
-    case 'https':
-    case 'wss':
-    return port !== 443;
+	if (typeof str !== 'string') {
+		return ret;
+	}
 
-    case 'ftp':
-    return port !== 21;
+	str = str.trim().replace(/^(\?|#|&)/, '');
 
-    case 'gopher':
-    return port !== 70;
+	if (!str) {
+		return ret;
+	}
 
-    case 'file':
-    return false;
-  }
+	str.split('&').forEach(function (param) {
+		var parts = param.replace(/\+/g, ' ').split('=');
+		// Firefox (pre 40) decodes `%3D` to `=`
+		// https://github.com/sindresorhus/query-string/pull/37
+		var key = parts.shift();
+		var val = parts.length > 0 ? parts.join('=') : undefined;
 
-  return port !== 0;
+		key = decodeURIComponent(key);
+
+		// missing `=` should be `null`:
+		// http://w3.org/TR/2012/WD-url-20120524/#collect-url-parameters
+		val = val === undefined ? null : decodeURIComponent(val);
+
+		if (ret[key] === undefined) {
+			ret[key] = val;
+		} else if (Array.isArray(ret[key])) {
+			ret[key].push(val);
+		} else {
+			ret[key] = [ret[key], val];
+		}
+	});
+
+	return ret;
+};
+
+exports.stringify = function (obj, opts) {
+	opts = opts || {};
+
+	var strict = opts.strict !== false;
+
+	return obj ? Object.keys(obj).sort().map(function (key) {
+		var val = obj[key];
+
+		if (val === undefined) {
+			return '';
+		}
+
+		if (val === null) {
+			return key;
+		}
+
+		if (Array.isArray(val)) {
+			var result = [];
+
+			val.slice().sort().forEach(function (val2) {
+				if (val2 === undefined) {
+					return;
+				}
+
+				if (val2 === null) {
+					result.push(encode(key, strict));
+				} else {
+					result.push(encode(key, strict) + '=' + encode(val2, strict));
+				}
+			});
+
+			return result.join('&');
+		}
+
+		return encode(key, strict) + '=' + encode(val, strict);
+	}).filter(function (x) {
+		return x.length > 0;
+	}).join('&') : '';
+};
+
+},{"strict-uri-encode":7}],7:[function(require,module,exports){
+'use strict';
+module.exports = function (str) {
+	return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
+		return '%' + c.charCodeAt(0).toString(16).toUpperCase();
+	});
 };
 
 },{}],8:[function(require,module,exports){
-'use strict';
-
-var required = require('requires-port')
-  , lolcation = require('./lolcation')
-  , qs = require('querystringify')
-  , relativere = /^\/(?!\/)/
-  , protocolre = /^([a-z0-9.+-]+:)?(\/\/)?(.*)$/i; // actual protocol is first match
-
-/**
- * These are the parse instructions for the URL parsers, it informs the parser
- * about:
- *
- * 0. The char it Needs to parse, if it's a string it should be done using
- *    indexOf, RegExp using exec and NaN means set as current value.
- * 1. The property we should set when parsing this value.
- * 2. Indication if it's backwards or forward parsing, when set as number it's
- *    the value of extra chars that should be split off.
- * 3. Inherit from location if non existing in the parser.
- * 4. `toLowerCase` the resulting value.
- */
-var instructions = [
-  ['#', 'hash'],                        // Extract from the back.
-  ['?', 'query'],                       // Extract from the back.
-  ['/', 'pathname'],                    // Extract from the back.
-  ['@', 'auth', 1],                     // Extract from the front.
-  [NaN, 'host', undefined, 1, 1],       // Set left over value.
-  [/\:(\d+)$/, 'port'],                 // RegExp the back.
-  [NaN, 'hostname', undefined, 1, 1]    // Set left over.
-];
-
- /**
- * @typedef ProtocolExtract
- * @type Object
- * @property {String} protocol Protocol matched in the URL, in lowercase
- * @property {Boolean} slashes Indicates whether the protocol is followed by double slash ("//")
- * @property {String} rest     Rest of the URL that is not part of the protocol
- */
-
- /**
-  * Extract protocol information from a URL with/without double slash ("//")
-  *
-  * @param  {String} address   URL we want to extract from.
-  * @return {ProtocolExtract}  Extracted information
-  * @private
-  */
-function extractProtocol(address) {
-  var match = protocolre.exec(address);
-  return {
-    protocol: match[1] ? match[1].toLowerCase() : '',
-    slashes: !!match[2],
-    rest: match[3] ? match[3] : ''
-  };
-}
-
-/**
- * The actual URL instance. Instead of returning an object we've opted-in to
- * create an actual constructor as it's much more memory efficient and
- * faster and it pleases my CDO.
- *
- * @constructor
- * @param {String} address URL we want to parse.
- * @param {Object|String} location Location defaults for relative paths.
- * @param {Boolean|Function} parser Parser for the query string.
- * @api public
- */
-function URL(address, location, parser) {
-  if (!(this instanceof URL)) {
-    return new URL(address, location, parser);
-  }
-
-  var relative = relativere.test(address)
-    , parse, instruction, index, key
-    , type = typeof location
-    , url = this
-    , i = 0;
-
-  //
-  // The following if statements allows this module two have compatibility with
-  // 2 different API:
-  //
-  // 1. Node.js's `url.parse` api which accepts a URL, boolean as arguments
-  //    where the boolean indicates that the query string should also be parsed.
-  //
-  // 2. The `URL` interface of the browser which accepts a URL, object as
-  //    arguments. The supplied object will be used as default values / fall-back
-  //    for relative paths.
-  //
-  if ('object' !== type && 'string' !== type) {
-    parser = location;
-    location = null;
-  }
-
-  if (parser && 'function' !== typeof parser) {
-    parser = qs.parse;
-  }
-
-  location = lolcation(location);
-
-  // extract protocol information before running the instructions
-  var extracted = extractProtocol(address);
-  url.protocol = extracted.protocol || location.protocol || '';
-  url.slashes = extracted.slashes || location.slashes;
-  address = extracted.rest;
-
-  for (; i < instructions.length; i++) {
-    instruction = instructions[i];
-    parse = instruction[0];
-    key = instruction[1];
-
-    if (parse !== parse) {
-      url[key] = address;
-    } else if ('string' === typeof parse) {
-      if (~(index = address.indexOf(parse))) {
-        if ('number' === typeof instruction[2]) {
-          url[key] = address.slice(0, index);
-          address = address.slice(index + instruction[2]);
-        } else {
-          url[key] = address.slice(index);
-          address = address.slice(0, index);
-        }
-      }
-    } else if (index = parse.exec(address)) {
-      url[key] = index[1];
-      address = address.slice(0, address.length - index[0].length);
-    }
-
-    url[key] = url[key] || (instruction[3] || ('port' === key && relative) ? location[key] || '' : '');
-
-    //
-    // Hostname, host and protocol should be lowercased so they can be used to
-    // create a proper `origin`.
-    //
-    if (instruction[4]) {
-      url[key] = url[key].toLowerCase();
-    }
-  }
-
-  //
-  // Also parse the supplied query string in to an object. If we're supplied
-  // with a custom parser as function use that instead of the default build-in
-  // parser.
-  //
-  if (parser) url.query = parser(url.query);
-
-  //
-  // We should not add port numbers if they are already the default port number
-  // for a given protocol. As the host also contains the port number we're going
-  // override it with the hostname which contains no port number.
-  //
-  if (!required(url.port, url.protocol)) {
-    url.host = url.hostname;
-    url.port = '';
-  }
-
-  //
-  // Parse down the `auth` for the username and password.
-  //
-  url.username = url.password = '';
-  if (url.auth) {
-    instruction = url.auth.split(':');
-    url.username = instruction[0] || '';
-    url.password = instruction[1] || '';
-  }
-
-  //
-  // The href is just the compiled result.
-  //
-  url.href = url.toString();
-}
-
-/**
- * This is convenience method for changing properties in the URL instance to
- * insure that they all propagate correctly.
- *
- * @param {String} prop          Property we need to adjust.
- * @param {Mixed} value          The newly assigned value.
- * @param {Boolean|Function} fn  When setting the query, it will be the function used to parse
- *                               the query.
- *                               When setting the protocol, double slash will be removed from
- *                               the final url if it is true.
- * @returns {URL}
- * @api public
- */
-URL.prototype.set = function set(part, value, fn) {
-  var url = this;
-
-  if ('query' === part) {
-    if ('string' === typeof value && value.length) {
-      value = (fn || qs.parse)(value);
-    }
-
-    url[part] = value;
-  } else if ('port' === part) {
-    url[part] = value;
-
-    if (!required(value, url.protocol)) {
-      url.host = url.hostname;
-      url[part] = '';
-    } else if (value) {
-      url.host = url.hostname +':'+ value;
-    }
-  } else if ('hostname' === part) {
-    url[part] = value;
-
-    if (url.port) value += ':'+ url.port;
-    url.host = value;
-  } else if ('host' === part) {
-    url[part] = value;
-
-    if (/\:\d+/.test(value)) {
-      value = value.split(':');
-      url.hostname = value[0];
-      url.port = value[1];
-    }
-  } else if ('protocol' === part) {
-    url.protocol = value;
-    url.slashes = !fn;
-  } else {
-    url[part] = value;
-  }
-
-  url.href = url.toString();
-  return url;
-};
-
-/**
- * Transform the properties back in to a valid and full URL string.
- *
- * @param {Function} stringify Optional query stringify function.
- * @returns {String}
- * @api public
- */
-URL.prototype.toString = function toString(stringify) {
-  if (!stringify || 'function' !== typeof stringify) stringify = qs.stringify;
-
-  var query
-    , url = this
-    , protocol = url.protocol;
-
-  if (protocol && protocol.charAt(protocol.length - 1) !== ':') protocol += ':';
-
-  var result = protocol + (url.slashes ? '//' : '');
-
-  if (url.username) {
-    result += url.username;
-    if (url.password) result += ':'+ url.password;
-    result += '@';
-  }
-
-  result += url.hostname;
-  if (url.port) result += ':'+ url.port;
-
-  result += url.pathname;
-
-  query = 'object' === typeof url.query ? stringify(url.query) : url.query;
-  if (query) result += '?' !== query.charAt(0) ? '?'+ query : query;
-
-  if (url.hash) result += url.hash;
-
-  return result;
-};
-
-//
-// Expose the URL parser and some additional properties that might be useful for
-// others.
-//
-URL.qs = qs;
-URL.location = lolcation;
-module.exports = URL;
-
-},{"./lolcation":9,"querystringify":6,"requires-port":7}],9:[function(require,module,exports){
-(function (global){
-'use strict';
-
-var slashes = /^[A-Za-z][A-Za-z0-9+-.]*:\/\//;
-
-/**
- * These properties should not be copied or inherited from. This is only needed
- * for all non blob URL's as a blob URL does not include a hash, only the
- * origin.
- *
- * @type {Object}
- * @private
- */
-var ignore = { hash: 1, query: 1 }
-  , URL;
-
-/**
- * The location object differs when your code is loaded through a normal page,
- * Worker or through a worker using a blob. And with the blobble begins the
- * trouble as the location object will contain the URL of the blob, not the
- * location of the page where our code is loaded in. The actual origin is
- * encoded in the `pathname` so we can thankfully generate a good "default"
- * location from it so we can generate proper relative URL's again.
- *
- * @param {Object|String} loc Optional default location object.
- * @returns {Object} lolcation object.
- * @api public
- */
-module.exports = function lolcation(loc) {
-  loc = loc || global.location || {};
-  URL = URL || require('./');
-
-  var finaldestination = {}
-    , type = typeof loc
-    , key;
-
-  if ('blob:' === loc.protocol) {
-    finaldestination = new URL(unescape(loc.pathname), {});
-  } else if ('string' === type) {
-    finaldestination = new URL(loc, {});
-    for (key in ignore) delete finaldestination[key];
-  } else if ('object' === type) {
-    for (key in loc) {
-      if (key in ignore) continue;
-      finaldestination[key] = loc[key];
-    }
-
-    if (finaldestination.slashes === undefined) {
-      finaldestination.slashes = slashes.test(loc.href);
-    }
-  }
-
-  return finaldestination;
-};
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./":8}],10:[function(require,module,exports){
 'use strict';
 
 var _interceptor = require('./services/interceptor');
@@ -1565,210 +1308,369 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 angular.module('angular-aws-apig', []).provider('APIGInterceptor', _interceptor2.default);
 
-},{"./services/interceptor":12}],11:[function(require,module,exports){
+},{"./services/interceptor":14}],9:[function(require,module,exports){
+(function (process){
 'use strict';
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
+var aws4 = exports,
+    querystring = require('query-string'),
+    hmac = require('./hmac'),
+    hash = require('./hash'),
+    byteLength = require('./byte-length');
 
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+// http://docs.amazonwebservices.com/general/latest/gr/signature-version-4.html
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _sha = require('crypto-js/sha256');
-
-var _sha2 = _interopRequireDefault(_sha);
-
-var _hmacSha = require('crypto-js/hmac-sha256');
-
-var _hmacSha2 = _interopRequireDefault(_hmacSha);
-
-var _encHex = require('crypto-js/enc-hex');
-
-var _encHex2 = _interopRequireDefault(_encHex);
-
-var _urlParse = require('url-parse');
-
-var _urlParse2 = _interopRequireDefault(_urlParse);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var AWS_SHA_256 = 'AWS4-HMAC-SHA256';
-var AWS4_REQUEST = 'aws4_request';
-var X_AMZ_DATE = 'x-amz-date';
-var X_AMZ_SECURITY_TOKEN = 'x-amz-security-token';
-var HOST = 'host';
-var AUTHORIZATION = 'Authorization';
-
-function hash(value) {
-  return (0, _sha2.default)(value);
+// This function assumes the string has already been percent encoded
+function encodeRfc3986(urlEncodedString) {
+  return urlEncodedString.replace(/[!'()*]/g, function (c) {
+    return '%' + c.charCodeAt(0).toString(16).toUpperCase();
+  });
 }
 
-function hexEncode(value) {
-  return value.toString(_encHex2.default);
-}
+// request: { path | body, [host], [method], [headers], [service], [region] }
+// credentials: { accessKeyId, secretAccessKey, [sessionToken] }
+function RequestSigner(request, credentials) {
 
-function hmac(secret, value) {
-  return (0, _hmacSha2.default)(value, secret, { asBytes: true });
-}
+  var headers = request.headers = request.headers || {},
+      hostParts = this.matchHost(request.hostname || request.host || headers.Host || headers.host);
 
-function buildCanonicalRequest(method, path, queryParams, headers, payload) {
-  return method + '\n' + buildCanonicalUri(path) + '\n' + buildCanonicalQueryString(queryParams) + '\n' + buildCanonicalHeaders(headers) + '\n' + buildCanonicalSignedHeaders(headers) + '\n' + hexEncode(hash(payload));
-}
+  this.request = request;
+  this.credentials = credentials || this.defaultCredentials();
 
-function hashCanonicalRequest(request) {
-  return hexEncode(hash(request));
-}
+  this.service = request.service || hostParts[0] || '';
+  this.region = request.region || hostParts[1] || 'us-east-1';
 
-function buildCanonicalUri(uri) {
-  return encodeURI(uri);
-}
+  // SES uses a different domain from the service name
+  if (this.service === 'email') this.service = 'ses';
 
-function buildCanonicalQueryString(queryParams) {
-  if (Object.keys(queryParams).length < 1) {
-    return '';
+  if (!request.method && request.body) request.method = 'POST';
+
+  if (!headers.Host && !headers.host) {
+    headers.Host = request.hostname || request.host || this.createHost();
+
+    // If a port is specified explicitly, use it as is
+    if (request.port) headers.Host += ':' + request.port;
   }
-
-  var sortedQueryParams = [];
-  for (var property in queryParams) {
-    if (queryParams.hasOwnProperty(property) && queryParams[property] !== undefined) {
-      sortedQueryParams.push(property);
-    }
-  }
-  sortedQueryParams.sort();
-
-  var canonicalQueryString = '';
-  for (var i = 0; i < sortedQueryParams.length; i++) {
-    canonicalQueryString += sortedQueryParams[i] + '=' + encodeURIComponent(queryParams[sortedQueryParams[i]]) + '&';
-  }
-  return canonicalQueryString.substr(0, canonicalQueryString.length - 1);
+  if (!request.hostname && !request.host) request.hostname = headers.Host || headers.host;
 }
 
-function buildCanonicalHeaders(headers) {
-  var canonicalHeaders = '';
-  var sortedKeys = [];
-  for (var property in headers) {
-    if (headers.hasOwnProperty(property)) {
-      sortedKeys.push(property);
-    }
-  }
-  sortedKeys.sort();
+RequestSigner.prototype.matchHost = function (host) {
+  var match = (host || '').match(/([^\.]+)\.(?:([^\.]*)\.)?amazonaws\.com$/);
+  var hostParts = (match || []).slice(1, 3);
 
-  for (var i = 0; i < sortedKeys.length; i++) {
-    canonicalHeaders += sortedKeys[i].toLowerCase() + ':' + headers[sortedKeys[i]] + '\n';
-  }
-  return canonicalHeaders;
-}
+  // ES's hostParts are sometimes the other way round, if the value that is expected
+  // to be region equals ‘es’ switch them back
+  // e.g. search-cluster-name-aaaa00aaaa0aaa0aaaaaaa0aaa.us-east-1.es.amazonaws.com
+  if (hostParts[1] === 'es') hostParts = hostParts.reverse();
 
-function buildCanonicalSignedHeaders(headers) {
-  var sortedKeys = [];
-  for (var property in headers) {
-    if (headers.hasOwnProperty(property)) {
-      sortedKeys.push(property.toLowerCase());
-    }
-  }
-  sortedKeys.sort();
+  return hostParts;
+};
 
-  return sortedKeys.join(';');
-}
+// http://docs.aws.amazon.com/general/latest/gr/rande.html
+RequestSigner.prototype.isSingleRegion = function () {
+  // Special case for S3 and SimpleDB in us-east-1
+  if (['s3', 'sdb'].indexOf(this.service) >= 0 && this.region === 'us-east-1') return true;
 
-function buildStringToSign(datetime, credentialScope, hashedCanonicalRequest) {
-  return AWS_SHA_256 + '\n' + datetime + '\n' + credentialScope + '\n' + hashedCanonicalRequest;
-}
+  return ['cloudfront', 'ls', 'route53', 'iam', 'importexport', 'sts'].indexOf(this.service) >= 0;
+};
 
-function buildCredentialScope(datetime, region, service) {
-  return datetime.substr(0, 8) + '/' + region + '/' + service + '/' + AWS4_REQUEST;
-}
+RequestSigner.prototype.createHost = function () {
+  var region = this.isSingleRegion() ? '' : (this.service === 's3' && this.region !== 'us-east-1' ? '-' : '.') + this.region,
+      service = this.service === 'ses' ? 'email' : this.service;
+  return service + region + '.amazonaws.com';
+};
 
-function calculateSigningKey(secretKey, datetime, region, service) {
-  return hmac(hmac(hmac(hmac('AWS4' + secretKey, datetime.substr(0, 8)), region), service), AWS4_REQUEST);
-}
+RequestSigner.prototype.prepareRequest = function () {
+  this.parsePath();
 
-function calculateSignature(key, stringToSign) {
-  return hexEncode(hmac(key, stringToSign));
-}
+  var request = this.request,
+      headers = request.headers,
+      query;
 
-function buildAuthorizationHeader(accessKey, credentialScope, headers, signature) {
-  return AWS_SHA_256 + ' Credential=' + accessKey + '/' + credentialScope + ', SignedHeaders=' + buildCanonicalSignedHeaders(headers) + ', Signature=' + signature;
-}
+  if (request.signQuery) {
 
-function transformData(request) {
-  var data = request.data;
-  if (Array.isArray(request.transformRequest)) {
-    request.transformRequest.forEach(function (transformer) {
-      data = transformer(data);
-    });
+    this.parsedPath.query = query = this.parsedPath.query || {};
+
+    if (this.credentials.sessionToken) query['X-Amz-Security-Token'] = this.credentials.sessionToken;
+
+    if (this.service === 's3' && !query['X-Amz-Expires']) query['X-Amz-Expires'] = 86400;
+
+    if (query['X-Amz-Date']) this.datetime = query['X-Amz-Date'];else query['X-Amz-Date'] = this.getDateTime();
+
+    query['X-Amz-Algorithm'] = 'AWS4-HMAC-SHA256';
+    query['X-Amz-Credential'] = this.credentials.accessKeyId + '/' + this.credentialString();
+    query['X-Amz-SignedHeaders'] = this.signedHeaders();
   } else {
-    data = request.transformRequest(data);
+
+    if (!request.doNotModifyHeaders) {
+      if (request.body && !headers['Content-Type'] && !headers['content-type']) headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=utf-8';
+
+      if (request.body && !headers['Content-Length'] && !headers['content-length']) headers['Content-Length'] = byteLength(request.body);
+
+      if (this.credentials.sessionToken) headers['X-Amz-Security-Token'] = this.credentials.sessionToken;
+
+      if (this.service === 's3') headers['X-Amz-Content-Sha256'] = hash(this.request.body || '', 'hex');
+
+      if (headers['X-Amz-Date']) this.datetime = headers['X-Amz-Date'];else headers['X-Amz-Date'] = this.getDateTime();
+    }
+
+    delete headers.Authorization;
+    delete headers.authorization;
   }
-  return data;
+};
+
+RequestSigner.prototype.sign = function () {
+  if (!this.parsedPath) this.prepareRequest();
+
+  if (this.request.signQuery) {
+    this.parsedPath.query['X-Amz-Signature'] = this.signature();
+  } else {
+    this.request.headers.Authorization = this.authHeader();
+  }
+
+  this.request.path = this.formatPath();
+
+  return this.request;
+};
+
+RequestSigner.prototype.getDateTime = function () {
+  if (!this.datetime) {
+    var headers = this.request.headers,
+        date = new Date(headers.Date || headers.date || new Date());
+
+    this.datetime = date.toISOString().replace(/[:\-]|\.\d{3}/g, '');
+  }
+  return this.datetime;
+};
+
+RequestSigner.prototype.getDate = function () {
+  return this.getDateTime().substr(0, 8);
+};
+
+RequestSigner.prototype.authHeader = function () {
+  return ['AWS4-HMAC-SHA256 Credential=' + this.credentials.accessKeyId + '/' + this.credentialString(), 'SignedHeaders=' + this.signedHeaders(), 'Signature=' + this.signature()].join(', ');
+};
+
+RequestSigner.prototype.signature = function () {
+  var date = this.getDate();
+  var kDate = hmac('AWS4' + this.credentials.secretAccessKey, date);
+  var kRegion = hmac(kDate, this.region);
+  var kService = hmac(kRegion, this.service);
+  var kCredentials = hmac(kService, 'aws4_request');
+  return hmac(kCredentials, this.stringToSign(), 'hex');
+};
+
+RequestSigner.prototype.stringToSign = function () {
+  return ['AWS4-HMAC-SHA256', this.getDateTime(), this.credentialString(), hash(this.canonicalString(), 'hex')].join('\n');
+};
+
+RequestSigner.prototype.canonicalString = function () {
+  if (!this.parsedPath) this.prepareRequest();
+
+  var pathStr = this.parsedPath.path,
+      query = this.parsedPath.query,
+      queryStr = '',
+      normalizePath = this.service !== 's3',
+      decodePath = this.service === 's3' || this.request.doNotEncodePath,
+      decodeSlashesInPath = this.service === 's3',
+      firstValOnly = this.service === 's3',
+      bodyHash = this.service === 's3' && this.request.signQuery ? 'UNSIGNED-PAYLOAD' : hash(this.request.body || '', 'hex');
+
+  if (query) {
+    queryStr = encodeRfc3986(querystring.stringify(Object.keys(query).sort().reduce(function (obj, key) {
+      if (!key) return obj;
+      obj[key] = !Array.isArray(query[key]) ? query[key] : firstValOnly ? query[key][0] : query[key].slice().sort();
+      return obj;
+    }, {})));
+  }
+  if (pathStr !== '/') {
+    if (normalizePath) pathStr = pathStr.replace(/\/{2,}/g, '/');
+    pathStr = pathStr.split('/').reduce(function (path, piece) {
+      if (normalizePath && piece === '..') {
+        path.pop();
+      } else if (!normalizePath || piece !== '.') {
+        if (decodePath) piece = decodeURIComponent(piece);
+        path.push(encodeRfc3986(encodeURIComponent(piece)));
+      }
+      return path;
+    }, []).join('/');
+    if (pathStr[0] !== '/') pathStr = '/' + pathStr;
+    if (decodeSlashesInPath) pathStr = pathStr.replace(/%2F/g, '/');
+  }
+
+  return [this.request.method || 'GET', pathStr, queryStr, this.canonicalHeaders() + '\n', this.signedHeaders(), bodyHash].join('\n');
+};
+
+RequestSigner.prototype.canonicalHeaders = function () {
+  var headers = this.request.headers;
+  function trimAll(header) {
+    return header.toString().trim().replace(/\s+/g, ' ');
+  }
+  return Object.keys(headers).sort(function (a, b) {
+    return a.toLowerCase() < b.toLowerCase() ? -1 : 1;
+  }).map(function (key) {
+    return key.toLowerCase() + ':' + trimAll(headers[key]);
+  }).join('\n');
+};
+
+RequestSigner.prototype.signedHeaders = function () {
+  return Object.keys(this.request.headers).map(function (key) {
+    return key.toLowerCase();
+  }).sort().join(';');
+};
+
+RequestSigner.prototype.credentialString = function () {
+  return [this.getDate(), this.region, this.service, 'aws4_request'].join('/');
+};
+
+RequestSigner.prototype.defaultCredentials = function () {
+  var env = process.env;
+  return {
+    accessKeyId: env.AWS_ACCESS_KEY_ID || env.AWS_ACCESS_KEY,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY || env.AWS_SECRET_KEY,
+    sessionToken: env.AWS_SESSION_TOKEN
+  };
+};
+
+RequestSigner.prototype.parsePath = function () {
+  var path = this.request.path || '/',
+      queryIx = path.indexOf('?'),
+      query = null;
+
+  if (queryIx >= 0) {
+    query = querystring.parse(path.slice(queryIx + 1));
+    path = path.slice(0, queryIx);
+  }
+
+  // S3 doesn't always encode characters > 127 correctly and
+  // all services don't encode characters > 255 correctly
+  // So if there are non-reserved chars (and it's not already all % encoded), just encode them all
+  if (/[^0-9A-Za-z!'()*\-._~%/]/.test(path)) {
+    path = path.split('/').map(function (piece) {
+      return encodeURIComponent(decodeURIComponent(piece));
+    }).join('/');
+  }
+
+  this.parsedPath = {
+    path: path,
+    query: query
+  };
+};
+
+RequestSigner.prototype.formatPath = function () {
+  var path = this.parsedPath.path,
+      query = this.parsedPath.query;
+
+  if (!query) return path;
+
+  // Services don't support empty query string keys
+  if (query[''] != null) delete query[''];
+
+  return path + '?' + encodeRfc3986(querystring.stringify(query));
+};
+
+aws4.RequestSigner = RequestSigner;
+
+aws4.sign = function (request, credentials) {
+  return new RequestSigner(request, credentials).sign();
+};
+
+}).call(this,require('_process'))
+},{"./byte-length":10,"./hash":11,"./hmac":13,"_process":5,"query-string":6}],10:[function(require,module,exports){
+"use strict";
+
+module.exports = function byteLength(str) {
+  // returns the byte length of an utf8 string
+  var s = str.length;
+  for (var i = str.length - 1; i >= 0; i--) {
+    var code = str.charCodeAt(i);
+    if (code > 0x7f && code <= 0x7ff) {
+      s += 1;
+    } else if (code > 0x7ff && code <= 0xffff) {
+      s += 2;
+    }
+    if (code >= 0xDC00 && code <= 0xDFFF) {
+      i--; // trail surrogate
+    }
+  }
+  return s;
+};
+
+},{}],11:[function(require,module,exports){
+'use strict';
+
+var sha256 = require('crypto-js/sha256');
+var hexer = require('./hexer');
+
+module.exports = function hash(string) {
+  var hash = sha256(string);
+  var output = hash.toString(hexer);
+  return output;
+};
+
+},{"./hexer":12,"crypto-js/sha256":4}],12:[function(require,module,exports){
+'use strict';
+
+module.exports = {
+  stringify: hexStringify
+};
+
+function hexStringify(wordArray) {
+  // Shortcuts
+  var words = wordArray.words;
+  var sigBytes = wordArray.sigBytes;
+
+  // Convert
+  var hexChars = [];
+  for (var i = 0; i < sigBytes; i++) {
+    var bite = words[i >>> 2] >>> 24 - i % 4 * 8 & 0xff;
+    hexChars.push((bite >>> 4).toString(16));
+    hexChars.push((bite & 0x0f).toString(16));
+  }
+  return hexChars.join('');
 }
 
-var AWS4 = function () {
-  function AWS4(options) {
-    _classCallCheck(this, AWS4);
+},{}],13:[function(require,module,exports){
+'use strict';
 
-    var defaults = {
-      region: 'us-east-1',
-      service: 'execute-api'
-    };
-    _extends(this, defaults, options);
+// var createHmac = require('./vendor/create-hmac')
+// var CryptoJS = require('crypto-js')
+var hmacSHA256 = require('crypto-js/hmac-sha256');
+var hexer = require('./hexer');
+
+module.exports = function hmac(key, string, encoding) {
+  encoding = encoding;
+  var hash = hmacSHA256(string, key);
+  var output = hash;
+  if (encoding === 'HEX') {
+    output = output.toString(hexer);
   }
+  return output;
+};
 
-  _createClass(AWS4, [{
-    key: 'sign',
-    value: function sign(request, creds) {
-      var url = new _urlParse2.default(request.url);
-      var datetime = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z').replace(/[:\-]|\.\d{3}/g, '');
-
-      request.params = request.params || {};
-      request.data = transformData(request);
-      request.headers[X_AMZ_DATE] = datetime;
-      request.headers[HOST] = url.hostname;
-
-      var canonicalRequest = buildCanonicalRequest(request.method, url.pathname, request.params, request.headers, request.data || '');
-      var hashedCanonicalRequest = hashCanonicalRequest(canonicalRequest);
-      var credentialScope = buildCredentialScope(datetime, this.region, this.service);
-      var stringToSign = buildStringToSign(datetime, credentialScope, hashedCanonicalRequest);
-      var signingKey = calculateSigningKey(creds.secretAccessKey, datetime, this.region, this.service);
-      var signature = calculateSignature(signingKey, stringToSign);
-
-      request.headers[AUTHORIZATION] = buildAuthorizationHeader(creds.accessKeyId, credentialScope, request.headers, signature);
-      if (creds.sessionToken) request.headers[X_AMZ_SECURITY_TOKEN] = creds.sessionToken;
-
-      delete request.headers[HOST];
-
-      return request;
-    }
-  }]);
-
-  return AWS4;
-}();
-
-exports.default = AWS4;
-
-},{"crypto-js/enc-hex":2,"crypto-js/hmac-sha256":3,"crypto-js/sha256":5,"url-parse":8}],12:[function(require,module,exports){
+},{"./hexer":12,"crypto-js/hmac-sha256":2}],14:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-var _awsSignatureV = require('./../aws-signature-v4');
+var _aws = require('../lib/aws4');
 
-var _awsSignatureV2 = _interopRequireDefault(_awsSignatureV);
+var _aws2 = _interopRequireDefault(_aws);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function APIGInterceptorProvider() {
   var _this = this;
 
-  this.headers = {};
+  this.headers = {
+    'Content-Type': 'application/json;charset=UTF-8'
+  };
   this.region = 'us-east-1';
   this.service = 'execute-api';
   this.urlRegex = '';
@@ -1789,22 +1691,67 @@ function APIGInterceptorProvider() {
     _extends(_this, options);
   };
 
+  this.parseUrl = function (url) {
+    var parser = document.createElement('a');
+    parser.href = url;
+    return {
+      host: parser.host,
+      path: parser.pathname
+    };
+  };
+
+  this.transformData = function (config) {
+    var data = config.data;
+    if (Array.isArray(config.transformRequest)) {
+      config.transformRequest.forEach(function (transformer) {
+        data = transformer(data);
+      });
+    } else {
+      data = config.transformRequest(data);
+    }
+    return data;
+  };
+
   this.$get = /*@ngInject*/["$q", "$injector", "$rootScope", function ($q, $injector, $rootScope) {
     var config = _this;
-    var aws4 = new _awsSignatureV2.default({
-      service: config.service,
-      region: config.region
-    });
     return {
       request: function request(_request) {
+        var _this2 = this;
+
         var urlRegex = new RegExp(config.urlRegex);
         if (urlRegex.test(_request.url)) {
-          _extends(_request.headers, config.headers);
-          _request.headers = $injector.invoke(config.headersGetter, this, { request: _request });
-          var credsPromise = $q.when($injector.invoke(config.credentialsGetter, this, { request: _request }));
-          return credsPromise.then(function (creds) {
-            return aws4.sign(_request, creds);
-          });
+          var _ret = function () {
+            _extends(_request.headers, config.headers);
+            var parser = config.parseUrl(_request.url);
+            var headers = $injector.invoke(config.headersGetter, _this2, { request: _request });
+            var params = _request.params ? '?' + _request.paramSerializer(_request.params) : '';
+            var data = config.transformData(_request);
+            var credsPromise = $q.when($injector.invoke(config.credentialsGetter, _this2, { request: _request }));
+            if (!data) delete headers['Content-Type'];
+            return {
+              v: credsPromise.then(function (creds) {
+                var options = _aws2.default.sign({
+                  service: config.service,
+                  region: config.region,
+                  host: parser.host,
+                  path: parser.path + params,
+                  method: _request.method,
+                  body: data,
+                  headers: headers
+                }, creds);
+
+                delete options.headers['Host'];
+                delete options.headers['Content-Length'];
+
+                _request.headers = options.headers;
+                _request.data = options.body;
+                _request.transformRequest = [];
+                return _request;
+              })
+            };
+          }();
+
+          if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
         } else {
           return _request;
         }
@@ -1819,4 +1766,4 @@ function APIGInterceptorProvider() {
 
 exports.default = APIGInterceptorProvider;
 
-},{"./../aws-signature-v4":11}]},{},[10]);
+},{"../lib/aws4":9}]},{},[8]);
