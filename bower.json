@@ -1,6 +1,6 @@
 {
   "name": "angular-aws-apig",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Angular interceptor for $http service that signs all requests to AWS APIGateway with IAM credentials.",
   "main": "dist/angular-aws-apig.js",
   "authors": [
