@@ -92,3 +92,6 @@ $rootScope.$on('$APIGError', (event, error) => {
   $log.debug(event, error);
 });
 ````
+
+## Credits
+This library is a wrapper around [aws4](https://github.com/mhart/aws4) npm package.
