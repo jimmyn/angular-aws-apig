@@ -48,7 +48,7 @@ angular.module('app', ['angular-aws-apig'])
 * `headers` - global headers that would be added to all api requests (default: `{}`)
 * `region` - AWS region (default: `us-east-1`)
 * `service` - AWS service (default: `execute-api`)
-* `urlRegex` - RegEx string, Interceptor would ignore requests to url that doesnt mathc this RegEx. (default: `''`)
+* `urlRegex` - RegEx string, Interceptor would ignore requests to url that doesn't match this RegEx. (default: `''`)
 
 All options could be passed in `APIGInterceptorProvider.config` function as a single object or assigned directly
 ````js
