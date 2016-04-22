@@ -1,8 +1,12 @@
 {
   "name": "angular-aws-apig",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Angular interceptor for $http service that signs all requests to AWS APIGateway with IAM credentials.",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jimmyn/angular-aws-apig.git"
+  },
   "scripts": {
     "test": "karma start"
   },
