@@ -7,17 +7,12 @@ const rename = require('gulp-rename');
 const ngAnnotate = require('gulp-ng-annotate');
 const browserify = require('browserify');
 const babelify = require('babelify');
-const aliasify = require('aliasify');
 const source = require('vinyl-source-stream');
 const buffer = require('vinyl-buffer');
 
 gulp.task('build', function () {
   return browserify('./src/angular-aws-apig.js', { entry: true })
     .transform(babelify)
-    .transform(aliasify, {
-      aliases: {querystring: 'querystring-browser'},
-      global: true
-    })
     .bundle()
     .on('error', function(err){
       gutil.log(err.message);

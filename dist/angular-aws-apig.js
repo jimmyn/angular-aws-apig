@@ -1695,7 +1695,7 @@ function APIGInterceptorProvider() {
     var parser = document.createElement('a');
     parser.href = url;
     return {
-      host: parser.host,
+      host: parser.host.split(':')[0],
       path: parser.pathname
     };
   };

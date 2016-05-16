@@ -28,12 +28,12 @@ function APIGInterceptorProvider() {
     const parser = document.createElement('a');
     parser.href = url;
     return {
-      host: parser.host,
+      host: parser.host.split(':')[0],
       path: parser.pathname
     };
   };
 
-  this.transformData = (config) => {
+  this.transformData = (config) => { 
     let data = config.data;
     if (Array.isArray(config.transformRequest)) {
       config.transformRequest.forEach((transformer) => {
