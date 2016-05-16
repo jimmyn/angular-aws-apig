@@ -35,6 +35,3 @@ Thumbs.db
 .LSOverride
 .Spotlight-V100
 .Trashes
-
-# Ignore ES5 output
-lib/
